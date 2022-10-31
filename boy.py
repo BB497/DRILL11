@@ -2,13 +2,14 @@ from pico2d import *
 
 # 이벤트의 정의
 # RD, LD, RU, LU = 0, 1, 2, 3
-RD, LD, RU, LU, TIMER = range(5) #타이머 이벤트 추가
+RD, LD, RU, LU, AD, TIMER = range(6) #타이머 이벤트 추가
 
 key_event_table = {
     (SDL_KEYDOWN, SDLK_RIGHT): RD,
     (SDL_KEYDOWN, SDLK_LEFT) : LD,
     (SDL_KEYUP, SDLK_RIGHT)  : RU,
-    (SDL_KEYUP, SDLK_LEFT)   : LU
+    (SDL_KEYUP, SDLK_LEFT)   : LU,
+    (SDL_KEYDOWN, SDLK_a)    : AD
 }
 
 # State를 구현 : 클래스를 이용해서
@@ -23,6 +24,7 @@ class IDLE:
     @staticmethod
     def exit(self):
         print('EXIT IDLE')
+        self.face_dir = self.dir
         pass
 
     @staticmethod
@@ -110,12 +112,43 @@ class SLEEP:
                                            -3.141592/2, '',
                                            self.x+25, self.y-25, 100, 100)
         pass
+
+class AUTO_RUN:
+    @staticmethod
+    def enter(self, event):
+        print('ENTER AUTORUN')
+        if self.face_dir == 1:
+            self.dir += 1
+        elif self.face_dir == -1:
+            self.dir -= -1
+        pass
+
+    @staticmethod
+    def exit(self):
+        print('EXIT AUTORUN')
+        pass
+
+    @staticmethod
+    def do(self):
+        self.frame = (self.frame + 1) % 8
+        self.x += self.dir
+        self.x = clamp(0, self.x, 800)
+        pass
+
+    @staticmethod
+    def draw(self):
+        if self.dir == -1:
+            self.image.clip_draw(self.frame * 100, 0, 100, 100, self.x, self.y)
+        elif self.dir == 1:
+            self.image.clip_draw(self.frame * 100, 100, 100, 100, self.x, self.y)
+        pass
 #상태 변환
 
 next_state = {
+    AUTO_RUN: {RD: RUN, LD: RUN, AD: IDLE, RU: AUTO_RUN, LU: AUTO_RUN},
     SLEEP: {RU: RUN, LU: RUN, RD: RUN, LD: RUN, TIMER: SLEEP},
-    IDLE: {RU: RUN, LU: RUN, RD: RUN, LD: RUN, TIMER: SLEEP},
-    RUN : {RU: IDLE, LU: IDLE, LD: IDLE, RD: IDLE, TIMER: RUN}
+    IDLE: {RU: RUN, LU: RUN, RD: RUN, LD: RUN, TIMER: SLEEP, AD: AUTO_RUN},
+    RUN : {RU: IDLE, LU: IDLE, LD: IDLE, RD: IDLE, TIMER: RUN, AD: AUTO_RUN}
 }
 
 class Boy:
